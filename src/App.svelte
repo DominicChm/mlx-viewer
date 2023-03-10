@@ -1,12 +1,8 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+  import { onMount } from "svelte";
   import CamControls from "./lib/CamControls.svelte";
   import Camviewer from "./lib/Camviewer.svelte";
   import Greet from "./lib/Greet.svelte";
-  import {init} from "./camdata"
-  onMount(() => {
-    init()
-  })
 </script>
 
 <main>
@@ -48,7 +44,7 @@
     background-color: slategray;
     margin: 0 0 1rem 0;
     padding: 1rem;
-    border-radius: .5rem;
+    border-radius: 0.5rem;
     box-shadow: 1px 1px 10px #000;
   }
   p {

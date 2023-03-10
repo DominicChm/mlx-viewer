@@ -1,33 +1,59 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { invoke } from "@tauri-apps/api/tauri";
 
-    let ports = null;
-
-    async function refreshPorts() {
-        ports = await invoke("ports");
-    }
+    import { image } from "../camdata";
 
     let canvas;
-    let refreshrate = 1;
+    let min;
+    let max;
+    let range;
 
+    // $: console.log($image);
     onMount(() => {
-        refreshPorts();
-
         let ctx: CanvasRenderingContext2D = canvas.getContext("2d");
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "low";
 
-        ctx.fillStyle = "darkred";
+        ctx.fillStyle = "#202124";
         ctx.fillRect(0, 0, 32, 24);
+    });
 
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, 1, 1);
+    image.subscribe((img) => {
+        if (!img) return;
+
+        min = img[0];
+        max = img[0];
+
+        for (const [i, t] of img.entries()) {
+            min = Math.min(min, t);
+            max = Math.max(max, t);
+        }
+
+        let range = max - min;
+
+        let ctx: CanvasRenderingContext2D = canvas.getContext("2d");
+        for (let row = 0; row < 24; row++) {
+            for (let col = 0; col < 32; col++) {
+                let idx = 32 * row + col;
+                let px = img[idx];
+                if (idx == -1) {
+                    ctx.fillStyle = `red`;
+                } else {
+                    ctx.fillStyle = `rgb(
+                    ${Math.floor((255 * (px - min)) / range)},
+                    ${Math.floor((255 * (px - min)) / range)},
+                    ${Math.floor((255 * (px - min)) / range)})`;
+                }
+
+                ctx.fillRect(col, row, 1, 1);
+            }
+        }
     });
 </script>
 
 <div>
     <canvas bind:this={canvas} width="32" height="24" />
+    <p>min:{min} max:{max} range:{range}</p>
 </div>
 
 <style>
