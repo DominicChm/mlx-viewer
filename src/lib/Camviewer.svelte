@@ -29,12 +29,12 @@
             max = Math.max(max, t);
         }
 
-        let range = max - min;
-
+        let range = max - min | 1;
+        console.log(range);
         let ctx: CanvasRenderingContext2D = canvas.getContext("2d");
         for (let row = 0; row < 24; row++) {
             for (let col = 0; col < 32; col++) {
-                let idx = 32 * row + col;
+                let idx = 32 * row + 31 - col;
                 let px = img[idx];
                 if (idx == -1) {
                     ctx.fillStyle = `red`;

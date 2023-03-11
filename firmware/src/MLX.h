@@ -30,11 +30,24 @@ public:
     const short ADDR_CR1 = 0x800D;
 
     float temp_frame[IMG_PIXELS]; // buffer for full frame of temperatures
+    uint8_t blob_map[IMG_PIXELS];
     uint16_t raw_frame[834];
 
     Adafruit_MLX90640 amlx;
     float ta = 0;
     TwoWire &w;
+
+    uint8_t api_buf[255];
+    size_t api_len;
+    size_t api_idx;
+    uint8_t api_cmd;
+    enum
+    {
+        SYNC,
+        RX_CMD,
+        RX_LEN,
+        RX_DAT,
+    } api_state;
 
     struct
     {
@@ -48,6 +61,14 @@ public:
         float cx;
         float cy;
     } analysis;
+
+    struct
+    {
+        float tmin = 26;
+        float tamb_min = 100;
+        float tmax = 36;
+    } tuning __attribute__((packed));
+
     union
     {
         struct
@@ -165,31 +186,72 @@ public:
         // tx(0x02, &c);
     }
 
-    void detect_mutating()
+    void preprocess()
     {
-        float temp_min = ta + 4;
-        float temp_max = 38;
+        float temp_min = tuning.tmin;
+        float temp_max = tuning.tmax;
 
         float amax = -100.;
 
+        // Linear Threshold
+        // for (size_t i; i < IMG_PIXELS; i++)
+        // {
+        //     if (temp_frame[i] > temp_max || temp_frame[i] < temp_min)
+        //     {
+        //         temp_frame[i] = temp_min;
+        //     }
+
+        //     amax = max(temp_frame[i], amax);
+        // }
+
+        // Binary mask
         for (size_t i; i < IMG_PIXELS; i++)
         {
             if (temp_frame[i] > temp_max || temp_frame[i] < temp_min)
             {
-                temp_frame[i] = temp_min;
+                temp_frame[i] = 0;
             }
-
-            amax = max(temp_frame[i], amax);
+            else
+            {
+                temp_frame[i] = 1;
+            }
         }
+    }
 
-        for (size_t i; i < IMG_PIXELS; i++)
+    void detect_blobs()
+    {
+    }
+    void detect_centroid()
+    {
+        float temp_min = tuning.tmin;
+        float temp_max = tuning.tmax;
+        float range = temp_max - temp_min;
+
+        analysis.cx = 0;
+        analysis.cy = 0;
+
+        for (size_t row = 0; row < 24; row++)
         {
+            for (size_t col = 0; col < 32; col++)
+            {
+                float px = temp_frame[row * 32 + col];
+                analysis.cx += px * col;
+                analysis.cy += px * row;
+            }
         }
+
+        analysis.cx /= IMG_PIXELS;
+        analysis.cy /= IMG_PIXELS;
     }
 
     void tx_timings()
     {
         tx(0x03, &cam_timing);
+    }
+
+    void tx_analysis()
+    {
+        tx(0x04, &analysis);
     }
 
     template <typename T>
@@ -199,5 +261,61 @@ public:
         Serial.write(cmd); // CMD
         Serial.write((uint8_t *)&len, 2);
         Serial.write((uint8_t *)t, len);
+    }
+
+    void rx(uint8_t b)
+    {
+        switch (api_state)
+        {
+        case SYNC:
+            if (b == 0xA0)
+                api_state = RX_CMD;
+            break;
+
+        case RX_CMD:
+            api_cmd = b;
+
+            api_idx = 0;
+            api_state = RX_LEN;
+            break;
+
+        case RX_LEN:
+            ((uint8_t *)&api_len)[api_idx++] = b;
+            if (api_idx >= 2)
+            {
+                if (api_len > 255)
+                    api_state = SYNC;
+                else
+                    api_state = RX_DAT;
+                api_idx = 0;
+            }
+            break;
+
+        case RX_DAT:
+            api_buf[api_idx++] = b;
+
+            if (api_idx >= api_len)
+            {
+                interpret_rx();
+                api_state = SYNC;
+            }
+        }
+    }
+
+    void interpret_rx()
+    {
+        switch (api_cmd)
+        {
+        case 0x01: // Ingest tuning
+            memcpy(&tuning, api_buf, api_len);
+            // tx_debugf("Tuning A1 %d", api_buf[3]);
+            // tx_debugf("Tuning A2 %d", api_buf[0]);
+
+            tx_debugf("Tuning TMIN %f", tuning.tmin);
+            tx_debugf("Tuning TMAX %f", tuning.tmax);
+            tx_debugf("Tuning TAMB %f", tuning.tamb_min);
+
+            break;
+        }
     }
 };

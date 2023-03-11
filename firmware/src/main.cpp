@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 #include <Wire.h>
-#include <MLX.h>
+#include "MLX.h"
 #define ADDR 0x33
 MLX mlx(Wire);
 
@@ -32,9 +32,19 @@ void loop()
 
   push_serial();
 
-
   mlx.read_img();
-  mlx.detect_mutating();
+  mlx.preprocess();
+  mlx.detect_centroid();
   mlx.tx_current_image();
   mlx.tx_timings();
+  mlx.tx_analysis();
+
+  if(Serial.available()) {
+    mlx.tx_debugf("Serial Byte RXd!! %d", Serial.available());
+  }
+
+  while (Serial.available())
+  {
+    mlx.rx(Serial.read());
+  }
 }

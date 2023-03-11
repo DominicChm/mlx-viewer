@@ -3,8 +3,9 @@ import { subscribe } from "svelte/internal";
 import { get, writable } from "svelte/store";
 
 let portFinishFlag = false;
+let port = null;
 export async function initSerialPort() {
-    const port = await navigator.serial.requestPort();
+    port = await navigator.serial.requestPort();
     try {
         await port.open({ baudRate: 1_500_000 });
         (port as any).setSignals({
@@ -52,6 +53,7 @@ export async function initSerialPort() {
     }
     portError.set(null);
     portOpen.set(false);
+    port = null;
 
 }
 
@@ -66,6 +68,33 @@ export let portOpen = writable<boolean>();
 export let logs = writable<{ idx: number, msg: string }[]>([]);
 export let image = writable<Float32Array | null>(null);
 
+
+// Tuning parameters
+export let tmin = writable<number>(27);
+export let tamb_min = writable<number>(100);
+export let tmax = writable<number>(40);
+
+// Analysis
+export let analysis = writable({
+    cx: 0,
+    cy: 0,
+});
+
+export async function writeTuning() {
+    console.log(`Writing tuning! ${get(tmin)}`);
+    let buf = new DataView(new ArrayBuffer(4 + 4 * 3));
+    buf.setUint8(0, 0xA0);
+    buf.setUint8(1, 0x01);
+    buf.setUint16(2, 12, true);
+
+    buf.setFloat32(4, get(tmin), true);
+    buf.setFloat32(8, get(tamb_min), true);
+    buf.setFloat32(12, get(tmax), true);
+    console.log(new Uint8Array(buf.buffer));
+    const writer = port.writable.getWriter();
+    await writer.write(buf.buffer);
+    writer.releaseLock();
+}
 
 class Parser {
     msg: DataView | null;
@@ -149,6 +178,13 @@ class Parser {
                     t_frame_fetch: this.msg.getInt32(0, true),
                     t_frame_tx_time: this.msg.getInt32(4, true),
                     t_calc_time: this.msg.getInt32(8, true),
+                });
+                break;
+                
+            case 0x04: // Analysis
+                analysis.set({
+                    cx: this.msg.getFloat32(0, true),
+                    cy: this.msg.getFloat32(4, true),
                 });
                 break;
         }
