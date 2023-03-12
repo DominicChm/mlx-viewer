@@ -172,14 +172,6 @@ int Adafruit_MLX90640::getFrame(float *framebuf) {
   for (uint8_t page = 0; page < 2; page++) {
     status = MLX90640_GetFrameData(0, mlx90640Frame);
 
-#ifdef MLX90640_DEBUG
-    Serial.printf("Page%d = [", page);
-    for (int i = 0; i < 834; i++) {
-      Serial.printf("0x%x, ", mlx90640Frame[i]);
-    }
-    Serial.println("]");
-#endif
-
     if (status < 0) {
       return status;
     }
@@ -187,10 +179,6 @@ int Adafruit_MLX90640::getFrame(float *framebuf) {
     tr = MLX90640_GetTa(mlx90640Frame, &_params) -
          OPENAIR_TA_SHIFT; // For a MLX90640 in the open air the shift is -8
                            // degC.
-#ifdef MLX90640_DEBUG
-    Serial.print("Tr = ");
-    Serial.println(tr, 8);
-#endif
     MLX90640_CalculateTo(mlx90640Frame, &_params, emissivity, tr, framebuf);
   }
   return 0;

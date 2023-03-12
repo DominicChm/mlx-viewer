@@ -46,6 +46,8 @@
         <h3>Analysis</h3>
         <p>cx: {$analysis.cx}</p>
         <p>cy: {$analysis.cy}</p>
+        <p>ex: {$analysis.ex}</p>
+        <p>ey: {$analysis.ey}</p>
     {/if}
     <h3>Log</h3>
     <div class="logs-scroller">
@@ -63,6 +65,7 @@
         grid-template-columns: auto auto;
         gap: 0.5rem;
         justify-items: right;
+        padding: .5rem;
     }
     label {
         display: flex;
@@ -88,5 +91,14 @@
     }
     .connected {
         background-color: darkslategray;
+    }
+
+    .control-container {
+        overflow-y: scroll;
+        overflow-x: hidden;
+    }
+    input {
+        width: 100%;
+        box-sizing: border-box;
     }
 </style>

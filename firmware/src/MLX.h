@@ -60,6 +60,8 @@ public:
     {
         float cx;
         float cy;
+        float ex;
+        float ey;
     } analysis;
 
     struct
@@ -191,31 +193,27 @@ public:
         float temp_min = tuning.tmin;
         float temp_max = tuning.tmax;
 
-        float amax = -100.;
-
         // Linear Threshold
-        // for (size_t i; i < IMG_PIXELS; i++)
-        // {
-        //     if (temp_frame[i] > temp_max || temp_frame[i] < temp_min)
-        //     {
-        //         temp_frame[i] = temp_min;
-        //     }
-
-        //     amax = max(temp_frame[i], amax);
-        // }
-
-        // Binary mask
-        for (size_t i; i < IMG_PIXELS; i++)
+        for (size_t i = 0; i < IMG_PIXELS; i++)
         {
             if (temp_frame[i] > temp_max || temp_frame[i] < temp_min)
             {
-                temp_frame[i] = 0;
-            }
-            else
-            {
-                temp_frame[i] = 1;
+                temp_frame[i] = temp_min;
             }
         }
+
+        // Binary mask
+        // for (size_t i = 0; i < IMG_PIXELS; i++)
+        // {
+        //     if (temp_frame[i] > temp_min) //temp_frame[i] < temp_max &&
+        //     {
+        //         temp_frame[i] = 1.0;
+        //     }
+        //     else
+        //     {
+        //         temp_frame[i] = 0.0;
+        //     }
+        // }
     }
 
     void detect_blobs()
@@ -225,7 +223,7 @@ public:
     {
         float temp_min = tuning.tmin;
         float temp_max = tuning.tmax;
-        float range = temp_max - temp_min;
+        float total = 0;
 
         analysis.cx = 0;
         analysis.cy = 0;
@@ -234,14 +232,20 @@ public:
         {
             for (size_t col = 0; col < 32; col++)
             {
-                float px = temp_frame[row * 32 + col];
-                analysis.cx += px * col;
-                analysis.cy += px * row;
+                float px = temp_frame[row * 32 + col] - temp_min;
+                analysis.cx += px * (float)col;
+                analysis.cy += px * (float)row;
+                total += px;
             }
         }
 
-        analysis.cx /= IMG_PIXELS;
-        analysis.cy /= IMG_PIXELS;
+        analysis.cx /= total;
+        analysis.cy /= total;
+
+        analysis.cx = 32 - analysis.cx;
+
+        analysis.ex = 32. / 2. - analysis.cx;
+        analysis.ey = 24. / 2. - analysis.cy;
     }
 
     void tx_timings()

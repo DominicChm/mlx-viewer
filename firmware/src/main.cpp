@@ -10,27 +10,18 @@ MLX mlx(Wire);
 void setup()
 {
   Serial.begin(1500000);
-  Serial2.begin(115200, 15, 2);
+  Serial2.begin(115200);
   mlx.init();
 }
 
 void push_serial()
 {
-  static long last_push = 0;
-
-  if (millis() - last_push < 1000)
-    return;
-  Serial2.printf("%f, %f\n", 1.0, -1.0);
-  // Serial.printf("%f, %f\n", 1.0, -1.0);
-
-  last_push = millis();
+  Serial2.printf("%.5f,%.5f\n", mlx.analysis.ex, mlx.analysis.ey);
 }
 
 void loop()
 {
   static long last_img = millis();
-
-  push_serial();
 
   mlx.read_img();
   mlx.preprocess();
@@ -39,7 +30,10 @@ void loop()
   mlx.tx_timings();
   mlx.tx_analysis();
 
-  if(Serial.available()) {
+  push_serial();
+
+  if (Serial.available())
+  {
     mlx.tx_debugf("Serial Byte RXd!! %d", Serial.available());
   }
 

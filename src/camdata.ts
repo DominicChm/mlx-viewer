@@ -78,6 +78,8 @@ export let tmax = writable<number>(40);
 export let analysis = writable({
     cx: 0,
     cy: 0,
+    ex: 0,
+    ey: 0,
 });
 
 export async function writeTuning() {
@@ -180,11 +182,13 @@ class Parser {
                     t_calc_time: this.msg.getInt32(8, true),
                 });
                 break;
-                
+
             case 0x04: // Analysis
                 analysis.set({
                     cx: this.msg.getFloat32(0, true),
                     cy: this.msg.getFloat32(4, true),
+                    ex: this.msg.getFloat32(8, true),
+                    ey: this.msg.getFloat32(12, true),
                 });
                 break;
         }

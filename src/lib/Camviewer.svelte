@@ -51,12 +51,20 @@
     });
 </script>
 
-<div>
-    <canvas bind:this={canvas} width="32" height="24" />
-    <p>min:{min} max:{max} range:{range}</p>
-</div>
+<main>
+    <div class="canvas-container">
+        <canvas bind:this={canvas} width="32" height="24" />
+        <div>TEST</div>
+    </div>
+</main>
 
 <style>
+    main {
+        display: flex;
+        justify-content: center;
+    }
+    .canvas-container {
+    }
     canvas {
         padding: 1rem;
         box-sizing: border-box;
@@ -68,7 +76,7 @@
         aspect-ratio: 32/24;
         object-fit: contain;
     }
-    div {
+    main {
         height: 100%;
         overflow: hidden;
     }
